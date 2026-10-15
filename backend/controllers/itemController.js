@@ -1,5 +1,19 @@
 import Item from "../models/Item.js";
 
+// Treat a blank discount as 0 and convert string input to a number
+const normalizeDiscount = (body) => {
+  if (!("discountPercentage" in body)) return body;
+
+  const { discountPercentage } = body;
+  return {
+    ...body,
+    discountPercentage:
+      discountPercentage === "" || discountPercentage === null
+        ? 0
+        : Number(discountPercentage),
+  };
+};
+
 export const getItems = async (req, res) => {
   try {
     const items = await Item.find().sort({ createdAt: -1 });
@@ -25,7 +39,7 @@ export const getItemById = async (req, res) => {
 
 export const createItem = async (req, res) => {
   try {
-    const newItem = await Item.create(req.body);
+    const newItem = await Item.create(normalizeDiscount(req.body));
     res.status(201).json(newItem);
   } catch (error) {
     res.status(400).json({
@@ -37,10 +51,14 @@ export const createItem = async (req, res) => {
 
 export const updateItem = async (req, res) => {
   try {
-    const updatedItem = await Item.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const updatedItem = await Item.findByIdAndUpdate(
+      req.params.id,
+      normalizeDiscount(req.body),
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
 
     if (!updatedItem) {
       return res.status(404).json({ message: "Item not found" });
